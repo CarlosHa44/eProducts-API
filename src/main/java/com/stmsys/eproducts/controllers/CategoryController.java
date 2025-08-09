@@ -1,59 +1,53 @@
 package com.stmsys.eproducts.controllers;
 
+import com.stmsys.eproducts.dtos.category.CategoryDTO;
 import com.stmsys.eproducts.models.entities.Category;
 import com.stmsys.eproducts.services.CategoryService;
-import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/categories")
 public class CategoryController {
 
-    private final CategoryService categoryService;
+    @Autowired
+    private CategoryService categoryService;
 
-    public CategoryController(CategoryService categoryService) {
-        this.categoryService = categoryService;
-    }
-
-    // Obtener todas las categorías (lista completa, no pageable)
     @GetMapping
-    public List<Category> getAllCategories() {
-        return categoryService.getAllCategories();
+    public List<CategoryDTO> getAllCategories() {
+        return categoryService.getAllCategories()
+                .stream()
+                .map(CategoryDTO::fromEntity)
+                .collect(Collectors.toList());
     }
 
-    // Obtener categoría por ID
     @GetMapping("/{id}")
-    public ResponseEntity<Category> getCategoryById(@PathVariable Long id) {
-        Optional<Category> category = categoryService.getCategoryById(id);
-        return category.map(ResponseEntity::ok)
+    public ResponseEntity<CategoryDTO> getCategoryById(@PathVariable Long id) {
+        return categoryService.getCategoryById(id)
+                .map(CategoryDTO::fromEntity)
+                .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // Crear nueva categoría
     @PostMapping
-    public ResponseEntity<Category> createCategory(@RequestBody Category category) {
-        Category created = categoryService.createCategory(category);
-        return ResponseEntity.created(URI.create("/api/categories/" + created.getId()))
-                .body(created);
+    public ResponseEntity<CategoryDTO> createCategory(@RequestBody Category category) {
+        Category savedCategory = categoryService.createCategory(category);
+        return ResponseEntity
+                .created(URI.create("/api/categories/" + savedCategory.getId()))
+                .body(CategoryDTO.fromEntity(savedCategory));
     }
 
-    // Actualizar categoría
     @PutMapping("/{id}")
-    public ResponseEntity<Category> updateCategory(@PathVariable Long id, @RequestBody Category category) {
-        try {
-            Category updated = categoryService.updateCategory(id, category);
-            return ResponseEntity.ok(updated);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<CategoryDTO> updateCategory(@PathVariable Long id, @RequestBody Category category) {
+        Category updatedCategory = categoryService.updateCategory(id, category);
+        return ResponseEntity.ok(CategoryDTO.fromEntity(updatedCategory));
     }
 
-    // Eliminar categoría
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
         categoryService.deleteCategory(id);
